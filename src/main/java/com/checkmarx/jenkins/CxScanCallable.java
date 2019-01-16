@@ -31,7 +31,7 @@ public class CxScanCallable implements FilePath.FileCallable<ScanResults>, Seria
     }
 
     @Override
-    public ScanResults invoke(File file, VirtualChannel channel) throws IOException, InterruptedException {
+    public ScanResults invoke(File file, VirtualChannel channel) throws IOException {
 
         CxLoggerAdapter log = new CxLoggerAdapter(listener.getLogger());
         config.setSourceDir(file.getAbsolutePath());
@@ -64,13 +64,8 @@ public class CxScanCallable implements FilePath.FileCallable<ScanResults>, Seria
             throw new IOException(ex);
         }
         if (config.getSastEnabled()) {
-            try {
-                shraga.createSASTScan();
-                sastCreated = true;
-            } catch (IOException | CxClientException e) {
-                log.error("Failed to create SAST scan: " + e.getMessage());
-                ret.setSastCreateException(e);
-            }
+            shraga.createSASTScan();
+            sastCreated = true;
         }
 
         if (config.getOsaEnabled()) {
@@ -81,43 +76,20 @@ public class CxScanCallable implements FilePath.FileCallable<ScanResults>, Seria
             handler.setLevel(Level.ALL);
             rootLog.addHandler(handler);
             //---------------------------
-
-            try {
-                shraga.createOSAScan();
-                osaCreated = true;
-            } catch (CxClientException | IOException e) {
-                log.error("Failed to create OSA scan: " + e.getMessage());
-                ret.setOsaCreateException(e);
-            } finally {
-                handler.flush();
-                rootLog.removeHandler(handler);
-            }
+            shraga.createOSAScan();
+            osaCreated = true;
+            handler.flush();
+            rootLog.removeHandler(handler);
         }
 
         if (sastCreated) {
-            try {
-                SASTResults sastResults = config.getSynchronous() ? shraga.waitForSASTResults() : shraga.getLatestSASTResults();
-                ret.setSastResults(sastResults);
-            } catch (InterruptedException e) {
-                if (config.getSynchronous()) {
-                    cancelScan(shraga);
-                }
-                throw e;
-
-            } catch (CxClientException | IOException e) {
-                log.error("Failed to get SAST scan results: " + e.getMessage());
-                ret.setSastWaitException(e);
-            }
+            SASTResults sastResults = config.getSynchronous() ? shraga.waitForSASTResults() : shraga.getLatestSASTResults();
+            ret.setSastResults(sastResults);
         }
 
         if (osaCreated) {
-            try {
-                OSAResults osaResults = config.getSynchronous() ? shraga.waitForOSAResults() : shraga.getLatestOSAResults();
-                ret.setOsaResults(osaResults);
-            } catch (CxClientException | IOException e) {
-                log.error("Failed to get OSA scan results: " + e.getMessage());
-                ret.setOsaWaitException(e);
-            }
+            OSAResults osaResults = config.getSynchronous() ? shraga.waitForOSAResults() : shraga.getLatestOSAResults();
+            ret.setOsaResults(osaResults);
         }
 
         if (config.getEnablePolicyViolations()) {
