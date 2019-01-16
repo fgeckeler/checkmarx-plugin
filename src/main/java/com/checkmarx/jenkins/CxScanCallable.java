@@ -31,7 +31,7 @@ public class CxScanCallable implements FilePath.FileCallable<ScanResults>, Seria
     }
 
     @Override
-    public ScanResults invoke(File file, VirtualChannel channel) throws IOException {
+    public ScanResults invoke(File file, VirtualChannel channel) throws IOException, InterruptedException {
 
         CxLoggerAdapter log = new CxLoggerAdapter(listener.getLogger());
         config.setSourceDir(file.getAbsolutePath());
